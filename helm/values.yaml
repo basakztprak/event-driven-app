@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  producer:
+    repository: basakoztoprak/eventdrivenapp
+    pullPolicy: IfNotPresent
+    tag: "producer"
+
+  consumer:
+    repository: basakoztoprak/eventdrivenapp
+    pullPolicy: IfNotPresent
+    tag: "consumer"
+
+  api:
+    repository: basakoztoprak/eventdrivenapp
+    pullPolicy: IfNotPresent
+    tag: "api"
+
+service:
+  producer:
+    type: ClusterIP
+    port: 3000  
+  consumer:
+    type: ClusterIP
+    port: 3000  
+  api:
+    type: NodePort
+    port: 3000
+    nodePort: 30987
+
+env:
+  kafka:
+    broker: "my-kafka-headless:9092"
+    topic: "events"
+  mongodb:
+    uri: "mongodb://root:ss4pVuboRy@my-mongodb:27017/events?authSource=admin"
+
+prometheus:
+  enabled: true
+  nodePort: 30900
+  scrapeTargets:
+    - "api:3000/metrics"
+    - "producer:3000/producer/metrics"
+    - "consumer:3000/consumer/metrics"

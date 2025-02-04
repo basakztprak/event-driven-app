@@ -1,0 +1,109 @@
+# Producer Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}-producer"
+  labels:
+    app: producer
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+    spec:
+      initContainers:
+        - name: wait-for-kafka-topic
+          image: confluentinc/cp-kafka:7.3.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Waiting for topic {{ .Values.env.kafka.topic }} to be created..."
+              until /usr/bin/kafka-topics --list --bootstrap-server {{ .Values.env.kafka.broker }} | grep -q "{{ .Values.env.kafka.topic }}"; do
+                echo "Topic {{ .Values.env.kafka.topic }} not found. Retrying in 5 seconds..."
+                sleep 5
+              done
+              echo "Topic {{ .Values.env.kafka.topic }} is now available!"
+      containers:
+        - name: producer
+          image: "{{ .Values.image.producer.repository }}:{{ .Values.image.producer.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.producer.port }}
+          env:
+            - name: KAFKA_BROKER
+              value: "{{ .Values.env.kafka.broker }}"
+            - name: KAFKA_TOPIC
+              value: "{{ .Values.env.kafka.topic }}"
+
+---
+# Consumer Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}-consumer"
+  labels:
+    app: consumer
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      initContainers:
+        - name: wait-for-kafka-topic
+          image: confluentinc/cp-kafka:7.3.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Waiting for Kafka topic: {{ .Values.env.kafka.topic }}"
+              until /usr/bin/kafka-topics --list --bootstrap-server {{ .Values.env.kafka.broker }} | grep -q "{{ .Values.env.kafka.topic }}"; do
+                echo "Topic not found. Retrying in 5 seconds..."
+                sleep 5
+              done
+              echo "Topic {{ .Values.env.kafka.topic }} found! Starting application..."
+      containers:
+        - name: consumer
+          image: "{{ .Values.image.consumer.repository }}:{{ .Values.image.consumer.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.consumer.port }}
+          env:
+            - name: KAFKA_BROKER
+              value: "{{ .Values.env.kafka.broker }}"
+            - name: KAFKA_TOPIC
+              value: "{{ .Values.env.kafka.topic }}"
+            - name: MONGODB_URI
+              value: "{{ .Values.env.mongodb.uri }}"
+
+---
+# API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}-api"
+  labels:
+    app: api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.api.repository }}:{{ .Values.image.api.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.api.port }}
+          env:
+            - name: MONGODB_URI
+              value: "{{ .Values.env.mongodb.uri }}"

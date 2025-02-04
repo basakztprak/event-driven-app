@@ -1,0 +1,50 @@
+# Service for Producer
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Release.Name }}-producer"
+  labels:
+    app: producer
+spec:
+  type: {{ .Values.service.producer.type }}
+  ports:
+    - name: app-port
+      port: {{ .Values.service.producer.port }}
+      targetPort: {{ .Values.service.producer.port }}
+  selector:
+    app: producer
+
+---
+# Service for Consumer
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Release.Name }}-consumer"
+  labels:
+    app: consumer
+spec:
+  type: {{ .Values.service.consumer.type }}
+  ports:
+    - name: app-port
+      port: {{ .Values.service.consumer.port }}
+      targetPort: {{ .Values.service.consumer.port }}
+  selector:
+    app: consumer
+
+---
+# Service for API
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Release.Name }}-api"
+  labels:
+    app: api
+spec:
+  type: {{ .Values.service.api.type }}
+  ports:
+    - name: app-port
+      port: {{ .Values.service.api.port }}
+      targetPort: {{ .Values.service.api.port }}
+      nodePort: {{ .Values.service.api.nodePort }}
+  selector:
+    app: api
